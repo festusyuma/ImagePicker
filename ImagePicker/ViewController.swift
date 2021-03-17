@@ -28,7 +28,26 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     override func viewDidLoad() {
         super.viewDidLoad()
         cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
+        shareButton.isEnabled = false
+        topMemeTextField.delegate = self
+        bottomMemeTextField.delegate = self
+        configure(bottomMemeTextField)
+        configure(topMemeTextField)
         
+        originalFrameY = view.frame.origin.y
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        subscribeToKeyboardNotification()
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        unsubscribeToKeyboardNotification()
+    }
+    
+    func configure(_ textField: UITextField) {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
         
@@ -40,20 +59,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             .font: UIFont(name: "HelveticaNeue-CondensedBlack", size: 25)!,
         ]
         
-        shareButton.isEnabled = false
-        topMemeTextField.defaultTextAttributes = defautlTxtFieldAttributes
-        bottomMemeTextField.defaultTextAttributes = defautlTxtFieldAttributes
-        topMemeTextField.delegate = self
-        bottomMemeTextField.delegate = self
-        originalFrameY = view.frame.origin.y
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        subscribeToKeyboardNotification()
-    }
-    
-    override func viewDidDisappear(_ animated: Bool) {
-        unsubscribeToKeyboardNotification()
+        textField.defaultTextAttributes = defautlTxtFieldAttributes
     }
 
     @IBAction func pcikImageFromPhoto(_ sender: Any) {
@@ -127,7 +133,9 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     @objc func keyboardWillShow(_ notification: Notification) {
-        view.frame.origin.y -= getKeyboardHeight(notification)
+        if bottomMemeTextField.isFirstResponder {
+            view.frame.origin.y -= getKeyboardHeight(notification)
+        }
     }
     
     @objc func keyboardWillHide(_ notification: Notification) {
@@ -146,12 +154,12 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func generateMendedImage() -> UIImage {
-        hideToolbar()
+        toggleToolbar(true)
         UIGraphicsBeginImageContext(view.frame.size)
         view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
         let mendedImage = UIGraphicsGetImageFromCurrentImageContext()!
         UIGraphicsEndImageContext()
-        showToolbar()
+        toggleToolbar(false)
         
         return mendedImage
     }
@@ -163,23 +171,14 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func unsubscribeToKeyboardNotification() {
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.removeObserver(self)
     }
     
-    func hideToolbar() {
-        topToolbar.isHidden = true
-        bottomToolbar.isHidden = true
-        self.navigationController?.setToolbarHidden(true, animated: false)
-        self.navigationController?.setNavigationBarHidden(true, animated: false)
-        
-    }
-    
-    func showToolbar() {
-        topToolbar.isHidden = false
-        bottomToolbar.isHidden = false
-        self.navigationController?.setToolbarHidden(false, animated: false)
-        self.navigationController?.setNavigationBarHidden(false, animated: false)
+    func toggleToolbar(_ hide: Bool) {
+        topToolbar.isHidden = hide
+        bottomToolbar.isHidden = hide
+        self.navigationController?.setToolbarHidden(hide, animated: false)
+        self.navigationController?.setNavigationBarHidden(hide, animated: false)
     }
 }
 
